@@ -160,47 +160,32 @@ enum class Clusterable: uint8_t {
 	PASSIVE = 0b001,  // Element does not initiates clustering, can be clusered only from
 				// another element, because it's too heavy (to decrease the entropy)
 	PASSIVE_FIXED = 0b101,  // PASSIVE that can't be approved to become clusterable (except FULL mode)
-	PASSIVE_CFIXED = 0b1101,  // PASSIVE that fixed by the chain
+	PASSIVE_APPROVED = 0b1101,  // PASSIVE that are approved to be clusterable
 	SINGLE = 0b011,  // Single best mutual candidate exists (takes part in max gain calc)
-	MULTIPLE = 0b111,  // Multiple best mutual candidates exists
-	UNDEFINED = 0b1111  // Element clusterability have not been defined yet
+	MULTIPLE = 0b111  // Multiple best mutual candidates exists
 };
 
-//! \brief Clustering Context
+//! \brief Clustering Requestor (Applicant)
 //!
-//! \tparam ItemT  - items type (Cluster, Node)
+//! \tparam LinksT  - links type
 template<typename ItemT>
-struct Context
-{
-	Clusterable  clusterable;  //!< Whether it can be clusterized (max gain >=0)
-	Candidates<ItemT*>  cands;  //!< Clustering candidates (bidirectional reqs), sorted
-	Candidates<ItemT*>  reqs;  //!< Clustering to another nodes (CANDS CHAINs), sorted
-	AccWeight  weight;  //!< Total weight of the cluster in both directions
-	AccWeight  cpg;  //!< Positive complemented gain, used only on clustering
-	AccWeight  gmax;  //!< Max gain (gain of each candidate)
+struct ClusterReq {
+	using SrcT = ItemT;
 
-	Context();
+	SrcT*  src;
+	AccWeight  gain;
 
-
-    //! Tidy memory from all reqs including cands
-	void tidyAllReqs() {
-		if(!cands.empty()) {
-			cands.clear();
-			cands.shrink_to_fit();
-		}
-		if(!reqs.empty()) {
-			reqs.clear();
-			reqs.shrink_to_fit();
-		}
-	}
-
-    //! \brief Whether any clustering reqs (including cands) exist
+    //! \brief Clustering Requestor constructor
     //!
-    //! \return bool  - no any reqs or cands exist
-	bool noreqs() const {
-		return cands.empty() && reqs.empty();
-	}
+    //! \param cl SrcT  - requrestor cluster
+    //! \param cg AccWeight  - clustering gain
+	ClusterReq(SrcT* cl, AccWeight cg)
+	: src(cl), gain(cg)  {}
 };
+
+//! Clustering requestors
+template<typename ItemT>
+using CluserReqs = vector<ClusterReq<ItemT>>;
 
 template<bool NONSYMMETRIC, typename LinksT>
 class HierarchyImpl;
@@ -213,20 +198,6 @@ class ClusterI {
 public:
 	const Id  id;  //!< Cluster id
 	Items<Cluster<LinksT>*>  owners;  //!< Owner clusters (more than one in case of clusters overlapping)
-
-    //! \brief ClusterI constructor
-    //!
-    //! \param cid Id  - cluster id
-	ClusterI(Id cid)
-	: id(cid), owners()  {}
-
-	ClusterI(const ClusterI&)=delete;
-	ClusterI(ClusterI&&)=default;
-
-	virtual ~ClusterI()  {}
-
-	ClusterI& operator=(const ClusterI&)=delete;
-	ClusterI& operator=(ClusterI&&)=default;
 
     //! \brief Self (internal) weight of the cluster
     //!
@@ -248,6 +219,20 @@ public:
     //!
     //! \return virtual ClusterI*  - cluster core or nullptr
 	virtual ClusterI* core() const = 0;
+
+    //! \brief ClusterI constructor
+    //!
+    //! \param cid Id  - cluster id
+	ClusterI(Id cid)
+	: id(cid), owners()  {}
+
+	ClusterI(const ClusterI&)=delete;
+	ClusterI(ClusterI&&)=default;
+
+	virtual ~ClusterI()  {}
+
+	ClusterI& operator=(const ClusterI&)=delete;
+	ClusterI& operator=(ClusterI&&)=default;
 };
 
 //! \brief Cluster declaration
@@ -263,20 +248,12 @@ public:
 	using AccLinksT = Links<AccLink<LinksT>>;  //!< \copydoc Links<AccLink<LinksT>>
 	using WeightValT = typename LinksT::value_type::WeightType::Type;  //!< \copydoc WeightType::Type
 
-	using ClusterI<LinksT>::id;  //!< \copydoc ClusterI<LinksT>::id
-	using ClusterI<LinksT>::owners;  //!< \copydoc ClusterI<LinksT>::owners
+	using ClusterI<LinksT>::id;  //!< Cluster id
+	using ClusterI<LinksT>::owners;  //!< Owner clusters (more than one in case of clusters overlapping)
 
 	// Note: links here are by value, because C++11 provides efficient operations of containers inside containers (rvalue ref movement)
 	AccLinksT  links;  //!< Accumulated cluster links. Sorted by dest
-public:
-	Items<ClusterI<LinksT>*>  des;  //!< Descendant clusters / nodes
-private:
-	AccWeight  m_sweight;  // Self weight of the cluster
-	// ATTENTION: cluster weight can be stored / used only for the unsigned links
-	//  or a graph represented and calculated as 2 subgrahs with unsigned links
-	unique_ptr<Context<Cluster>>  m_context;
-	ClusterI<LinksT>*  m_core;  //!<  Core of the cluster if exists (contains in des)
-public:
+
     //! \brief Cluster constructor
     //!
     //! \param linksNum  - number of links
@@ -297,10 +274,23 @@ public:
     //! \copydoc ClusterI<LinksT>::descs() const
 	const Items<ClusterI<LinksT>*>* descs() const
 	{ return &des; }
+	Items<ClusterI<LinksT>*>  des;  //!< Descendant clusters / nodes
 
     //! \copydoc ClusterI<LinksT>::core() const
 	ClusterI<LinksT>* core() const
 	{ return m_core; }
+private:
+	// Note: m_cands are accessory working data and it's OK that they are invalidated on class copying
+	unique_ptr<Candidates<Cluster*>>  m_cands;  // Clustering candidates, sorted
+	AccWeight  m_sweight;  // Self weight of the cluster
+	// ATTENTION: cluster weight can be stored / used only for the unsigned links
+	//  or a graph represented and calculated as 2 subgrahs with unsigned links
+	Clusterable  m_clusterable;  // Whether it can be clusterized (max gain >=0)
+	AccWeight  m_cpg;  //  Positive complemented gain, used only on clustering
+	AccWeight  m_gmax;  // Max gain (gain of each candidate)
+	AccWeight  m_weight;  // Total weight of the cluster in both directions
+	unique_ptr<CluserReqs<Cluster>>  m_clureqs;  // Clustering requestors (CANDS CHAINs), sorted
+	ClusterI<LinksT>*  m_core;  //!<  Core of the cluster if exists (contains in des)
 };
 
 // Node declaration -----------------------------------------------------------
@@ -317,8 +307,8 @@ public:
 	using ClusterT = Cluster<LinksT>;  //!< \copydoc Cluster<LinksT>
 	using WeightValT = typename LinksT::value_type::WeightType::Type;  //!< \copydoc WeightType::Type
 
-	using ClusterI<LinksT>::id;  //!< \copydoc ClusterI<LinksT>::id
-	using ClusterI<LinksT>::owners;  //!< \copydoc ClusterI<LinksT>::owners
+	using ClusterI<LinksT>::id;  //!< Node id
+	using ClusterI<LinksT>::owners;  //!< Owner clusters
 
 	// Note: links here are by value, because C++11 provides efficient operations of containers inside containers (rvalue ref movement)
 	//! \note
@@ -327,11 +317,7 @@ public:
 	//! 	- zero self link weight is possible, but such link should be avoided,
 	//!  		because increases complexity and is senseless except for the back links
 	LinksT  links;  //!< Node links. Sorted by dest
-private:
-	// Note: total network weight is: Sum(m_w + m_sw (to be considered twice as other links)) / 2
-	WeightValT  m_sweight;  // Self weight of the node
-	unique_ptr<Context<Node>>  m_context;
-public:
+
     //! \brief Node constructor
     //!
     //! \param nid  - node id
@@ -359,6 +345,16 @@ public:
     //! \copydoc ClusterI<LinksT>::core() const
 	ClusterI<LinksT>* core() const
 	{ return nullptr; }
+private:
+	// Note: m_cands are accessory working data and it's OK that they are invalidated on class copying
+	unique_ptr<Candidates<Node*>>  m_cands;  // Clustering candidates, sorted
+	// Note: total network weight is: Sum(m_w + m_sw (to be considered twice as other links)) / 2
+	WeightValT  m_sweight;  // Self weight of the node
+	Clusterable  m_clusterable;  // Whether it can be clusterized (max gain >=0)
+	AccWeight  m_cpg;  // Positive complemented gain, used only on clustering
+	AccWeight  m_gmax;  // Max gain (gain of each candidate)
+	AccWeight  m_weight;  // Total weight of the node
+	unique_ptr<CluserReqs<Node>>  m_clureqs;  // Clustering requestors (CANDS CHAINs), sorted
 };
 
 //! Container for the items with static allocation

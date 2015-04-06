@@ -19,6 +19,7 @@
 					<Add option="-g" />
 					<Add option="-Wno-format" />
 					<Add option="-DDEBUG" />
+					<Add option="-DMULTI_HOPS" />
 					<Add directory="include" />
 				</Compiler>
 				<Linker>
@@ -37,6 +38,7 @@
 					<Add option="-O3" />
 					<Add option="-Wfatal-errors" />
 					<Add option="-DNDEBUG" />
+					<Add option="-DMULTI_HOPS" />
 					<Add directory="include" />
 				</Compiler>
 				<Linker>

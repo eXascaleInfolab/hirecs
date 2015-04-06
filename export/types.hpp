@@ -16,27 +16,23 @@
 using namespace hirecs;
 
 
-// Context definitions --------------------------------------------------------
-template<typename ItemT>
-Context<ItemT>::Context()
-: clusterable(Clusterable::UNDEFINED), cands(), reqs(), weight(ACCWEIGHT_NONE)
-, cpg(ACCWEIGHT_NONE), gmax(ACCWEIGHT_NONE)
-{}
-
 // Cluster definitions --------------------------------------------------------
 template<typename LinksT>
 atomic<Id> Cluster<LinksT>::m_uid(0);
 
 template<typename LinksT>
 Cluster<LinksT>::Cluster(Id linksNum)
-: ClusterI<LinksT>(m_uid++), links(), des(), m_sweight(0)
-, m_context(new Context<Cluster>()), m_core(nullptr)
+: ClusterI<LinksT>(m_uid++), links(), des(), m_cands(), m_sweight(0)
+, m_clusterable(Clusterable::MULTIPLE), m_cpg(ACCWEIGHT_NONE)
+, m_gmax(ACCWEIGHT_NONE), m_weight(ACCWEIGHT_NONE), m_clureqs(), m_core(nullptr)
 { links.reserve(linksNum); }
 
 // Node definitions -----------------------------------------------------------
 template<typename LinksT>
 Node<LinksT>::Node(Id nid, Id linksNum)
-: ClusterI<LinksT>(nid), links(), m_sweight(0), m_context(new Context<Node>())
+: ClusterI<LinksT>(nid), links(), m_cands(), m_sweight(0)
+, m_clusterable(Clusterable::MULTIPLE), m_cpg(ACCWEIGHT_NONE)
+, m_gmax(ACCWEIGHT_NONE), m_weight(ACCWEIGHT_NONE), m_clureqs()
 { links.reserve(linksNum); }
 
 // Hierarchy definitions ------------------------------------------------------
