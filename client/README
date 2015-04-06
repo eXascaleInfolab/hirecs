@@ -1,0 +1,3 @@
+Target OS: Linux Ubuntu 14.04 / Debian x64.
+Put libhirecs.so to the same dir as hirecs (bin/Release) to run it.
+See details here: http://www.lumais.com/hirecs
