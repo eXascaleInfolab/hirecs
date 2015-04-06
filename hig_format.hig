@@ -1,0 +1,104 @@
+# .hig - HiReCS Input Graph
+# Input data format specification for the lib HiReCS in .hig format
+#
+# (c) HiReCS (High Resolution Hierarchical Clustering with Stable State library)
+# \Author: Artem Lutov <luart@ya.ru>
+# \Organizations: eXascale lab <http://exascale.info/>, ScienceWise <http://sciencewise.info/>, Lumais <http://www.lumais.com/>
+# \Date: 2015-03
+# \Version: 1.2
+
+
+# Common description:
+# - Comments start from '#'
+# - Sections start from '/'
+# - Spaces are delimiters, redundant spaces are skipped
+# - Values types:
+#	Id: uint32_t, except UINT32_MAX that is reserved
+#	Weight: float
+
+# ------------------------------------------------------------------------------
+# Common Graph properties are specified in the Graph section
+
+[/Graph [weighted:{0, 1}] [<normalize:{0, 1}>]]
+
+# where:
+# 	weighted  - whether graph is weighted. Optional, default: 1
+# 		Note: links weight are skipped for nonweighted graph
+# 	normalize  - whether to normalize weights on each iteration by the number
+# 		of node links. Optional, default: 0
+
+# ------------------------------------------------------------------------------
+# Nodes should be specified in the separate optional section
+# 	as number of nodes N => id E [0, N-1] and optionally
+#	starting id E Id.
+# 	Links ids are validated if start_id is specified.
+#	Anyway nodes section and their specification is desirable
+
+[/Nodes [<nodes_number>  [<start_id>]]]
+
+# where:
+# 	nodes_number  - number of nodes E Id. Optional if nodes are listed, desirable
+#	start_id  - starting id E Id if nodes are not listed. Optional, default: 0
+
+# ------------------------------------------------------------------------------
+# Links can be undirected (Edges) or directed (Arcs) and are specified
+# in the corresponding sections
+#
+# NOTE: 
+# Edge i>j:weight generates two Arcs i>j:weight/2 and j>i:weight/2 for weighted network;
+# and Arcs i>j, j>i for the unweighted network + doubles selfweight of the nodes that
+# were set via Edge, so total weight is doubled.
+# 
+# Multiplication of all weights has no effect on clsutering.
+
+/<Links>
+<src_id> > <dst_id1[:weight1]> <dst_id2[:weight2]> ...
+
+# where:
+#	Links  - section of links: {Edges, Arcs}
+#	src_id  - source node id E Id
+#	dst_id  - destination node id E Id
+#	weight  - link weight E Weight. Optional, default: 1
+
+# ------------------------------------------------------------------------------
+# Example of a simple unweighed triangle:
+/Graph weighted:1 normalize:0
+/Nodes 3 1 # 3 nodes starting from id=1
+/Edges
+0>1 2  # Weights of the links 0>1 and 0>2 are equal to 1 by default
+# Same as: 0 > 1:1 2:1
+1>2:1  # Weight of the link 1>2 is specified explicitly as 1
+
+
+# The same simple unweighed triangle can be specified as:
+/Nodes 3  # Nodes starting id is not specified => links ids validation is not performed
+/Edges
+0> 1:1
+	# Empty lines and comments are allowed
+/Arcs
+0> 2
+2 > 0:1
+2>1
+1> 2
+
+
+
+#===============================================================================
+# Changelog
+# ------------------------------------------------------------------------------
+# v1.2 (libhirecs-r242+, since 2015-03)
+# - Now Edge i>j:weight gererates Arcs i>j:weight/2 and j>i:weight/2 for the
+#   weighted networks, but in case of the unweighted network the weight is doubled.
+# ATTENTION: for the unweighted network Edge generates 2 Arcs with the same
+#     weight = 1, and doubles weights of the selflinks, so the total weight is doubled.
+# - Node weight is allowed to be set using eighter Arc and Edge with exactly the same
+#   meaning and result (except the case of unweighted network).
+#	To set selflinks correctly in the unweighted network either only Edges or only Arcs
+#	should be used.
+#
+#
+# v1.1 (libhirecs-r240, 2014-2015)
+# - Weight type become 'float' instead of 'uint16_t'
+# - Edge creates two arcs with the same weight. Node weight can be specified only
+#   via the Arc. This is made to avoid ambiguity for the unweighted networks where
+#   all links has weight = 1 and Edge can't be represented differently.
