@@ -19,13 +19,11 @@
 # ------------------------------------------------------------------------------
 # Common Graph properties are specified in the Graph section
 
-[/Graph [weighted:{0, 1}] [<normalize:{0, 1}>]]
+[/Graph [weighted:{0, 1}]]
 
 # where:
 # 	weighted  - whether graph is weighted. Optional, default: 1
 # 		Note: links weight are skipped for nonweighted graph
-# 	normalize  - whether to normalize weights on each iteration by the number
-# 		of node links. Optional, default: 0
 
 # ------------------------------------------------------------------------------
 # Nodes should be specified in the separate optional section
@@ -62,8 +60,8 @@
 
 # ------------------------------------------------------------------------------
 # Example of a simple unweighed triangle:
-/Graph weighted:1 normalize:0
-/Nodes 3 1 # 3 nodes starting from id=1
+/Graph weighted:1
+/Nodes 3 0 # 3 nodes starting from id=1
 /Edges
 0>1 2  # Weights of the links 0>1 and 0>2 are equal to 1 by default
 # Same as: 0 > 1:1 2:1

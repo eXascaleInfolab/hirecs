@@ -1,3 +1,5 @@
+include/
 pytools/
+src/
 *.layout
 cscope.out
