@@ -5,6 +5,13 @@ See details in http://www.lumais.com/hirecs, documentation and datasets in http:
 API Manual:  http://www.lumais.com/doxy/hirecs/index.html  
 Releases: https://github.com/XI-lab/hirecs/releases  
 
+
+* **WARNING**
+The library is under development now, it currently has issues with datasets processing of the size more than 100 000 links.  
+Currently it forms excellent root level (top-level, coarse-grained) clusters, but might have issues with the underlying levels of the hierarchy.  
+If you find any issues, please [submit them here](https://github.com/XI-lab/hirecs/issues).
+
+
 ## Execution Example
 <kbd>$ ./hirecs -oje dataovp/pentagon.hig</kbd>
 <pre><samp>High Resolution Hierarchical Clustering with Stable State (HiReCS) started, nodes: 5, weight: 10
