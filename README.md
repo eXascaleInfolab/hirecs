@@ -25,5 +25,7 @@ Hierarchy building is completed, mod: 0.175, weight (both dir): 10, clusters: 10
 </samp></pre>
 *Note:* the binaries are located in `bin/Release/`, target OS: Linux Ubuntu 14.04 x64 (ask me if you need another target architecture, the code is crossplatform).
 
+## Related Projects
+* [HiCBeM](https://github.com/XI-lab/hicbem) - Benchmark for the Hierarchical Clustering Algorithms: https://github.com/XI-lab/hicbem
 
 If you are interested in this clustering library, please visit <a href="http://exascale.info/">eXascale Infolab</a> where you can find another projects and research papers related to Big Data!
